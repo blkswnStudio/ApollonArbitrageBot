@@ -35,7 +35,8 @@ class YFinance:
             time.sleep(update_time)
 
     @staticmethod
-    def request_credentials(timeout: int, cookieUrl: str = 'https://fc.yahoo.com', crumbUrl: str = '/v1/test/getcrumb') -> {str}:
+    def request_credentials(timeout: int, cookieUrl: str = 'https://fc.yahoo.com',
+                            crumbUrl: str = '/v1/test/getcrumb') -> dict:
         """
         Requests cookie and crumb from yahoo and returns them.
         """
@@ -44,7 +45,7 @@ class YFinance:
         return {'cookie': cookie, 'crumb': crumb}
 
     @staticmethod
-    def request_quote(symbols: [str], credentials: {}, timeout: int) -> [{}]:
+    def request_quote(symbols: [str], credentials: {}, timeout: int) -> list[dict]:
         """
         Returns information about provides symbols with the use of credentials (cookie, crumb).
         """
@@ -55,7 +56,7 @@ class YFinance:
         quotes = response.json()['quoteResponse']['result']
         return quotes
 
-    def request_price(self, symbol: str, timeout: int = 5) -> {}:
+    def request_price(self, symbol: str, timeout: int = 5) -> dict:
         """
         Returns float price of requested symbol.
         """
@@ -63,9 +64,10 @@ class YFinance:
             quotes = YFinance.request_quote([symbol], self._credentials, timeout)
             currency = quotes[0].get("currency")
             price = quotes[0].get("regularMarketPrice")
-            return {"price": price, "currency": currency}
+            average_50_days = quotes[0].get("fiftyDayAverage")
+            return {"price": price, "currency": currency, "50_days_average": average_50_days}
         except Exception as e:
-            return {"price": None, "currency": None}
+            return {}
 
 
 if __name__ == "__main__":
