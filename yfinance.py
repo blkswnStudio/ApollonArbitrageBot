@@ -1,6 +1,8 @@
 import time
 import requests
 import threading
+from web3 import Web3
+from ABIs.ABI import *
 
 
 class YFinance:
@@ -63,14 +65,35 @@ class YFinance:
             quotes = YFinance.request_quote([symbol], self._credentials, timeout)
             currency = quotes[0].get("currency")
             price = quotes[0].get("regularMarketPrice")
-            return {"price": price, "currency": currency}
+            mode = "regular"
+            if "preMarketPrice" in quotes[0]:
+                price = quotes[0].get("preMarketPrice")
+                mode = "pre"
+            if "postMarketPrice" in quotes[0]:
+                price = quotes[0].get("postMarketPrice")
+                mode = "post"
+            return {"price": price, "currency": currency, "mode": mode}
         except Exception as e:
             return {"price": None, "currency": None}
 
 
 if __name__ == "__main__":
+    PoolID = "0xe9BF367408567CdE44ca83548e596748e997b2EB"
+    w3 = Web3(Web3.HTTPProvider('https://evm-rpc-testnet.sei-apis.com'))
+    contract = w3.eth.contract(Web3.to_checksum_address(PoolID),
+                               abi=SWAP_PAIR_ABI)
+    print(contract.functions.getReserves().call())
+    TokenID = "0x5978a4fEe819ddbf2195a3671e73D18F9Dae7ae7"
+    contract2 = w3.eth.contract(Web3.to_checksum_address(TokenID),
+                               abi=TOKEN_ABI)
+    print(contract2.functions.decimals().call())
+    a=contract.functions.getReserves().call()[0]/10**(contract2.functions.decimals().call())
+    print(a)
     yf = YFinance()
     yf.start()
+    tickers = ("MSTR", "NVDA", "XAGX-USD", "AAPL", "TSLA")
     while True:
-        p = yf.get_price("EURUSD=X")
+        for ticker in tickers:
+            price_data = yf.get_price(ticker)
+            print(f"{ticker}: {price_data}")
         time.sleep(1)
