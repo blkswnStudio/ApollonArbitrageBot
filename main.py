@@ -107,7 +107,7 @@ def run_bot():
             premium_value = data[name]["premium"]
             #print(premium_value)
             if abs(premium_value - 100) > 10.0 and premium_value != 0:
-                if time.time() - data[name]["time"] > 60:
+                if time.time() - data[name]["time"] > 60*5:
                     amountin = calc_volume(name)
                     data[name]["time"] = time.time()
                     message = "Asset, Oracle/Dex, Premium\n"
