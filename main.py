@@ -82,7 +82,10 @@ def update_dex_premium():
     for name in data:
         data[name]["dex_price"] = assets.list[name]["price"]
     for name in data:
-        data[name]["premium"] = data[name]["dex_price"] / data[name]["yf_price"] * 100
+        try:
+            data[name]["premium"] = data[name]["dex_price"] / data[name]["yf_price"] * 100
+        except:
+            data[name]["premium"] = 100.0
 def run_bot():
     t0=time.time()
     while True:
@@ -139,5 +142,6 @@ if __name__ == '__main__':
     thread = threading.Thread(target=run_bot)
     thread.start()
 
+    bot.data = data
     bot.run()
 

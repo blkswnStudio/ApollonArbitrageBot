@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, Application, MessageHandler, filters
 import requests
+import time
 from buttons import Buttons
 
 class ApollonTelegramBot:
@@ -15,22 +16,22 @@ class ApollonTelegramBot:
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(MessageHandler(filters.TEXT, self.handler))
 
+        self.data = None
+
     def run(self):
         self.app.run_polling(0.5)
 
     async def handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.message.text == Buttons.get_oracle_info_name:
-
-            await update.message.reply_text(f"Hallo BLKSWN-Family",
+        if update.message.text == Buttons.get_current_data_name:
+            message = "Time: " + f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n"
+            message += "Asset, Oracle/Dex, Premium\n"
+            for name in self.data:
+                message += f"{name}, {self.data[name]['dex_price']:.2f} jUSD / {self.data[name]['yf_price']:.2f} $, {self.data[name]['premium']:.2f} %\n"  #
+            await update.message.reply_text(message,
                                             reply_markup=Buttons.basic_markup)
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"👋 Hello, bot started ",
                                         reply_markup=Buttons.basic_markup)
-
-    def get_zchf_price(self, network) -> float:
-        response = requests.get(f'http://{self.tracking_api_host}:{self.tracking_api_port}'
-                                f'/uniswap/prices/{network}/zchf_usdt/last').json()
-        return float(round(response, 4))
 
     def send_telegram_msg(self, msg: str) -> None:
         telegram_msg = f"{msg}"

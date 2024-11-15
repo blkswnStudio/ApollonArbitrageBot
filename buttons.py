@@ -4,11 +4,11 @@ from telegram import KeyboardButton, ReplyKeyboardMarkup
 class Buttons:
 
     # Button Names
-    get_oracle_info_name = "Info ℹ️"
+    get_current_data_name = "Current Data ℹ️"
 
     # Buttons
-    get_oracle_info_btn = KeyboardButton(get_oracle_info_name)
+    get_current_data_btn = KeyboardButton(get_current_data_name)
 
     # Button Markups
-    basic_markup = ReplyKeyboardMarkup([[get_oracle_info_btn]])
+    basic_markup = ReplyKeyboardMarkup([[get_current_data_btn]])
 
