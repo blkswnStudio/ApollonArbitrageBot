@@ -65,12 +65,3 @@ class Pyth(Oracles):
             return result
         except Exception as e:
             return {"prices": {}}
-
-
-if __name__ == "__main__":
-    pyth = Pyth()
-    pyth.start()
-
-    print(pyth.get_price("AAPL"))
-    print(pyth.get_price("TSLA"))
-

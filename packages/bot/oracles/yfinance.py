@@ -70,11 +70,3 @@ class YFinance(Oracles):
             return {"price": price, "currency": currency, "50_days_average": average_50_days}
         except Exception as e:
             return {}
-
-
-if __name__ == "__main__":
-    yf = YFinance()
-    yf.start()
-    while True:
-        p = yf.get_price("EURUSD=X")
-        time.sleep(1)
