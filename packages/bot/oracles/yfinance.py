@@ -2,8 +2,10 @@ import time
 import requests
 import threading
 
+from .oracles import Oracles
 
-class YFinance:
+
+class YFinance(Oracles):
     URL_BASE: str = 'https://query2.finance.yahoo.com'
     HEADERS = {
         "User-Agent":
