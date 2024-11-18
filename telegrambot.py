@@ -19,16 +19,21 @@ class ApollonTelegramBot:
         self.data = None
 
     def run(self):
-        self.app.run_polling(0.5)
+        self.app.run_polling(1.0)
 
     async def handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.message.text == Buttons.get_current_data_name:
-            message = "Time: " + f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n"
-            message += "Asset, Oracle/Dex, Premium\n"
-            for name in self.data:
-                message += f"{name}, {self.data[name]['dex_price']:.2f} jUSD / {self.data[name]['yf_price']:.2f} $, {self.data[name]['premium']:.2f} %\n"  #
-            await update.message.reply_text(message,
-                                            reply_markup=Buttons.basic_markup)
+        try:
+            print('Vorher')
+            if update.message.text == Buttons.get_current_data_name:
+                print('Nachher')
+                message = "Time: " + f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n"
+                message += "Asset, Oracle/Dex, Premium\n"
+                for name in self.data:
+                    message += f"{name}, {self.data[name]['dex_price']:.2f} jUSD / {self.data[name]['yf_price']:.2f} $, {self.data[name]['premium']:.2f} %\n"  #
+                await update.message.reply_text(message,
+                                                reply_markup=Buttons.basic_markup)
+        except Exception as e:
+            print(f"Error: {e}")
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"👋 Hello, bot started ",
                                         reply_markup=Buttons.basic_markup)
