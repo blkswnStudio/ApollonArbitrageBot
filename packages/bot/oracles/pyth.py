@@ -4,10 +4,14 @@ import threading
 
 from .oracles import Oracles
 
+
 class Pyth(Oracles):
     URL_BASE: str = 'https://hermes.pyth.network'
 
     ORACLE_ID_MAPPING: dict = {
+        "BTC": "e62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+        "USDT": "2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+        "SEI": "",
         "MSTR": "e1e80251e5f5184f2195008382538e847fafc36f751896889dd3d1b1f6111f09",
         "XAG": "f2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e",
         "NVDA": "b1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593",
