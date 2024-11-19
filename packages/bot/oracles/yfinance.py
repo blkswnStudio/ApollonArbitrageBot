@@ -65,16 +65,19 @@ class YFinance(Oracles):
         try:
             quotes = YFinance.request_quote([symbol], self._credentials, timeout)
             currency = quotes[0].get("currency")
-            price = quotes[0].get("regularMarketPrice")
             average_50_days = quotes[0].get("fiftyDayAverage")
-            return {"price": price, "currency": currency, "50_days_average": average_50_days}
-            mode = "regular"
-            if "preMarketPrice" in quotes[0]:
+
+            if "regularMarketPrice" in quotes[0]:
+                price = quotes[0].get("regularMarketPrice")
+                mode = "regular"
+            elif "preMarketPrice" in quotes[0]:
                 price = quotes[0].get("preMarketPrice")
                 mode = "pre"
-            if "postMarketPrice" in quotes[0]:
+            elif "postMarketPrice" in quotes[0]:
                 price = quotes[0].get("postMarketPrice")
                 mode = "post"
-            return {"price": price, "currency": currency, "mode": mode}
+            else:
+                raise RuntimeError("The stock price you are trying to fetch is currently not traded.")
+            return {"price": price, "currency": currency, "mode": mode, "50_days_average": average_50_days}
         except Exception as e:
             return {}
