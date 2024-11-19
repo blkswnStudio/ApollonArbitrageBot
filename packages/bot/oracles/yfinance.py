@@ -1,11 +1,11 @@
 import time
 import requests
 import threading
-from web3 import Web3
-from ABIs.ABI import *
+
+from .oracles import Oracles
 
 
-class YFinance:
+class YFinance(Oracles):
     URL_BASE: str = 'https://query2.finance.yahoo.com'
     HEADERS = {
         "User-Agent":
@@ -37,7 +37,8 @@ class YFinance:
             time.sleep(update_time)
 
     @staticmethod
-    def request_credentials(timeout: int, cookieUrl: str = 'https://fc.yahoo.com', crumbUrl: str = '/v1/test/getcrumb') -> {str}:
+    def request_credentials(timeout: int, cookieUrl: str = 'https://fc.yahoo.com',
+                            crumbUrl: str = '/v1/test/getcrumb') -> dict:
         """
         Requests cookie and crumb from yahoo and returns them.
         """
@@ -46,7 +47,7 @@ class YFinance:
         return {'cookie': cookie, 'crumb': crumb}
 
     @staticmethod
-    def request_quote(symbols: [str], credentials: {}, timeout: int) -> [{}]:
+    def request_quote(symbols: [str], credentials: {}, timeout: int) -> list[dict]:
         """
         Returns information about provides symbols with the use of credentials (cookie, crumb).
         """
@@ -57,7 +58,7 @@ class YFinance:
         quotes = response.json()['quoteResponse']['result']
         return quotes
 
-    def request_price(self, symbol: str, timeout: int = 5) -> {}:
+    def request_price(self, symbol: str, timeout: int = 5) -> dict:
         """
         Returns float price of requested symbol.
         """
@@ -65,6 +66,8 @@ class YFinance:
             quotes = YFinance.request_quote([symbol], self._credentials, timeout)
             currency = quotes[0].get("currency")
             price = quotes[0].get("regularMarketPrice")
+            average_50_days = quotes[0].get("fiftyDayAverage")
+            return {"price": price, "currency": currency, "50_days_average": average_50_days}
             mode = "regular"
             if "preMarketPrice" in quotes[0]:
                 price = quotes[0].get("preMarketPrice")
@@ -74,26 +77,4 @@ class YFinance:
                 mode = "post"
             return {"price": price, "currency": currency, "mode": mode}
         except Exception as e:
-            return {"price": None, "currency": None}
-
-
-if __name__ == "__main__":
-    PoolID = "0xe9BF367408567CdE44ca83548e596748e997b2EB"
-    w3 = Web3(Web3.HTTPProvider('https://evm-rpc-testnet.sei-apis.com'))
-    contract = w3.eth.contract(Web3.to_checksum_address(PoolID),
-                               abi=SWAP_PAIR_ABI)
-    print(contract.functions.getReserves().call())
-    TokenID = "0x5978a4fEe819ddbf2195a3671e73D18F9Dae7ae7"
-    contract2 = w3.eth.contract(Web3.to_checksum_address(TokenID),
-                               abi=TOKEN_ABI)
-    print(contract2.functions.decimals().call())
-    a=contract.functions.getReserves().call()[0]/10**(contract2.functions.decimals().call())
-    print(a)
-    yf = YFinance()
-    yf.start()
-    tickers = ("MSTR", "NVDA", "XAGX-USD", "AAPL", "TSLA")
-    while True:
-        for ticker in tickers:
-            price_data = yf.get_price(ticker)
-            print(f"{ticker}: {price_data}")
-        time.sleep(1)
+            return {}
