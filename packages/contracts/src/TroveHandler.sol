@@ -251,7 +251,7 @@ contract TroveHandler is Ownable {
         address spender
     ) internal {
         uint length = tokenAmount.length;
-        for (uint i = 0; i < length; ) {
+        for (uint i = 0; i < length; i++) {
             approve(
                 tokenAmount[i].tokenAddress,
                 spender,
