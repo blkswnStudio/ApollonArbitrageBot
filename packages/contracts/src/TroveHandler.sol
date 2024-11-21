@@ -73,7 +73,10 @@ contract TroveHandler is Ownable {
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
         approveTokenAmount(collateral, address(borrowOperations));
-        borrowOperations.openTrove(collateral, priceUpdateData);
+        borrowOperations.openTrove{value: msg.value}(
+            collateral,
+            priceUpdateData
+        );
         isTroveOpen = true;
     }
 
@@ -84,7 +87,7 @@ contract TroveHandler is Ownable {
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
         approveTokenAmount(collateral, address(borrowOperations));
-        borrowOperations.addColl(
+        borrowOperations.addColl{value: msg.value}(
             collateral,
             upperHint,
             lowerHint,
@@ -98,7 +101,7 @@ contract TroveHandler is Ownable {
         address lowerHint,
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
-        borrowOperations.withdrawColl(
+        borrowOperations.withdrawColl{value: msg.value}(
             collateral,
             upperHint,
             lowerHint,
@@ -120,7 +123,7 @@ contract TroveHandler is Ownable {
         IBorrowerOperations.MintMeta memory meta,
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
-        borrowOperations.increaseStableDebt(
+        borrowOperations.increaseStableDebt{value: msg.value}(
             stableAmount,
             meta,
             priceUpdateData
@@ -134,7 +137,7 @@ contract TroveHandler is Ownable {
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
         approveTokenAmount(debts, address(borrowOperations));
-        borrowOperations.repayDebt(
+        borrowOperations.repayDebt{value: msg.value}(
             debts,
             upperHint,
             lowerHint,
@@ -159,7 +162,7 @@ contract TroveHandler is Ownable {
     function closeTrove(
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
-        borrowOperations.closeTrove(priceUpdateData);
+        borrowOperations.closeTrove{value: msg.value}(priceUpdateData);
         isTroveOpen = false;
     }
 
@@ -173,7 +176,7 @@ contract TroveHandler is Ownable {
         address lowerHint,
         bytes[] memory priceUpdateData
     ) external payable onlyOwner {
-        borrowOperations.claimUnassignedAssets(
+        borrowOperations.claimUnassignedAssets{value: msg.value}(
             percentage,
             upperHint,
             lowerHint,
@@ -198,7 +201,7 @@ contract TroveHandler is Ownable {
         returns (ISwapOperations.SwapAmount[] memory amounts)
     {
         return
-            swapOperations.openLongPosition(
+            swapOperations.openLongPosition{value: msg.value}(
                 stableToMintIn,
                 debtOutMin,
                 debtTokenAddress,
@@ -224,7 +227,7 @@ contract TroveHandler is Ownable {
         returns (ISwapOperations.SwapAmount[] memory amounts)
     {
         return
-            swapOperations.openShortPosition(
+            swapOperations.openShortPosition{value: msg.value}(
                 debtToMintIn,
                 stableOutMin,
                 debtTokenAddress,

@@ -14,7 +14,7 @@ class TroveFactory:
     PRIVATE_KEY: str = os.getenv("PRIVATE_KEY")
     ADDRESS = Web3().eth.account.from_key(PRIVATE_KEY).address
 
-    DON_UPDATE_PRICE: list[str] = ["SEI"]
+    DO_UPDATE_PRICE: list[str] = ["SEI"]
     DONT_UPDATE_PRICE: list[str] = ["jUSD", "JLY"]
 
     def __init__(self, w3: Web3, trave_factory_address: str):
@@ -25,9 +25,9 @@ class TroveFactory:
 
         self.dept_symbols: list[str] = [self.get_token_symbol(token_address) for token_address in self.get_dept_token_addresses()]
         self.coll_symbols: list[str] = [self.get_token_symbol(token_address) for token_address in self.get_call_token_addresses()]
-        self.update_prices_symbols: set[str] = set([(symbol[1:] if symbol[:1] == "j" else symbol)
+        self.update_prices_symbols: set[str] = set(list([(symbol[1:] if symbol[:1] == "j" else symbol)
                                                     for symbol in self.dept_symbols + self.coll_symbols
-                                                    if symbol not in self.DONT_UPDATE_PRICE])
+                                                    if symbol not in self.DONT_UPDATE_PRICE] + self.DO_UPDATE_PRICE))
 
     def get_dept_token_addresses(self) -> list[str]:
         return self.trave_factory_contract.functions.getDebtTokenAddresses().call()
@@ -65,6 +65,7 @@ class TroveFactory:
         tx = txn.build_transaction({
             "chainId": self.w3.eth.chain_id,
             "gas": self.EXECUTE_GAS,
+            "value": 100000000000000000,
             "gasPrice": int(self.w3.eth.gas_price * 1.1),  # 10% extra fee
             'nonce': self.w3.eth.get_transaction_count(self.ADDRESS),
         })

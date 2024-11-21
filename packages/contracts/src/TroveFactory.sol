@@ -3,10 +3,12 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBase} from "./Interfaces/IBase.sol";
 import {ISwapOperations} from "./Interfaces/ISwapOperations.sol";
 import {ITokenManager} from "./Interfaces/ITokenManager.sol";
+import {IPriceFeed} from "./Interfaces/IPriceFeed.sol";
 
 import {TroveHandler} from "./TroveHandler.sol";
 
@@ -26,6 +28,8 @@ contract TroveFactory is Ownable {
 
     /* ========== STATE VARIABLES ========== */
 
+    uint constant DECIMALS = 1e18;
+
     address public constant BORROWER_OPERATIONS =
         0xb005fC27a8404d0AE7FB5081F57573d2c45CB7E0;
     address public constant SWAP_OPERATIONS =
@@ -39,6 +43,7 @@ contract TroveFactory is Ownable {
     address public constant jUSD = 0xAE34739a521521DE17902999ff8FBb12394192a1;
 
     ITokenManager tokenManager = ITokenManager(TOKEN_MANAGER);
+    IPriceFeed priceFeed = IPriceFeed(PRICE_FEED);
 
     IBase.MintMeta zeroMintMeta = IBase.MintMeta(address(0), address(0), 5e16);
 
@@ -86,9 +91,14 @@ contract TroveFactory is Ownable {
         TokenInput memory deptToken,
         address newCollateralAddress,
         bytes[] memory priceUpdateData
-    ) external onlyOwner {
+    ) external payable onlyOwner {
         IBase.TokenAmount[] memory tokenAmountArray;
         bool isLongPosition = deptToken.tokenAddress == jUSD ? true : false;
+        uint updateFee = priceFeed.getPythUpdateFee(priceUpdateData);
+        require(
+            msg.value != updateFee * 4,
+            "Not enough fee to update pyth prices"
+        );
 
         // Deposit collateral into factory
         deposit(collateralToken.tokenAddress, collateralToken.amount);
@@ -109,41 +119,68 @@ contract TroveFactory is Ownable {
 
         // Open trove and add collateral
         tokenAmountArray = tokenInputToArray(collateralToken);
-        troveHandler.openTrove(tokenAmountArray, priceUpdateData);
+        troveHandler.openTrove{value: updateFee}(
+            tokenAmountArray,
+            priceUpdateData
+        );
 
         // Open Long or Short Position
         ISwapOperations.SwapAmount[] memory amounts;
         if (isLongPosition) {
-            amounts = troveHandler.openLongPosition(
+            amounts = troveHandler.openLongPosition{value: updateFee}(
                 deptToken.amount,
                 0,
                 newCollateralAddress,
-                address(this),
+                address(troveHandler),
                 zeroMintMeta,
                 block.timestamp,
                 priceUpdateData
             );
         } else {
-            amounts = troveHandler.openShortPosition(
+            amounts = troveHandler.openShortPosition{value: updateFee}(
                 deptToken.amount,
                 0,
                 deptToken.tokenAddress,
-                address(this),
+                address(troveHandler),
                 zeroMintMeta,
                 block.timestamp,
                 priceUpdateData
             );
         }
 
-        // Add new collateral token to trove
-        IERC20 newCollateralToken = IERC20(newCollateralAddress);
-        tokenAmountArray = tokenInputToArray(
-            TokenInput(
-                address(newCollateralToken),
-                newCollateralToken.balanceOf(address(this))
+        // Mint maximum amount of jUSD as profit
+        uint amountOut = amounts[amounts.length - 1].amount;
+        (uint newCollateralTokenPrice, , ) = priceFeed.getPrice(
+            newCollateralAddress
+        );
+        uint amountOutUSD = (amountOut * newCollateralTokenPrice) / DECIMALS;
+
+        (, uint currentDept) = troveHandler.getUSDValues();
+        uint maximumDept = (amountOutUSD * DECIMALS) / 1105e15;
+        require(
+            maximumDept > currentDept,
+            string(
+                abi.encodePacked(
+                    "Maximum dept is smaller than current dept: Maximum Dept: ",
+                    toString(maximumDept),
+                    " Current Dept: ",
+                    toString(currentDept)
+                )
             )
         );
-        troveHandler.addColl(
+
+        uint mintAmount = maximumDept - currentDept;
+        troveHandler.increaseStableDebt{value: updateFee}(
+            mintAmount,
+            zeroMintMeta,
+            priceUpdateData
+        );
+
+        // Add new collateral token to trove
+        tokenAmountArray = tokenInputToArray(
+            TokenInput(newCollateralAddress, amountOut)
+        );
+        troveHandler.addColl{value: updateFee}(
             tokenAmountArray,
             zeroMintMeta.upperHint,
             zeroMintMeta.lowerHint,
@@ -151,22 +188,16 @@ contract TroveFactory is Ownable {
         );
 
         // Withdraw init collateral token from trove
-        troveHandler.withdrawColl(
+        tokenAmountArray = tokenInputToArray(
+            TokenInput(
+                address(collateralToken.tokenAddress),
+                collateralToken.amount
+            )
+        );
+        troveHandler.withdrawColl{value: updateFee}(
             tokenAmountArray,
             zeroMintMeta.upperHint,
             zeroMintMeta.lowerHint,
-            priceUpdateData
-        );
-
-        // Mint jUSD until trove is at 111%
-        uint mintStableAmount = troveHandler.calculateMaxMintAmount(
-            111e16,
-            1e18
-        );
-
-        troveHandler.increaseStableDebt(
-            mintStableAmount,
-            zeroMintMeta,
             priceUpdateData
         );
 
@@ -175,17 +206,18 @@ contract TroveFactory is Ownable {
             collateralToken.tokenAddress,
             collateralToken.amount
         );
-        troveHandler.withdraw(jUSD, mintStableAmount);
+
+        troveHandler.withdraw(jUSD, mintAmount);
 
         // Withdraw from factory to address
         withdraw(collateralToken.tokenAddress, collateralToken.amount);
-        withdraw(jUSD, mintStableAmount);
+        withdraw(jUSD, mintAmount);
 
         // Emit event
         emit ExecutedArbitrage(
             address(troveHandler),
             isLongPosition,
-            mintStableAmount
+            mintAmount
         );
     }
 
@@ -221,5 +253,9 @@ contract TroveFactory is Ownable {
     ) internal {
         IERC20 token = IERC20(tokenAddress);
         token.approve(spender, value);
+    }
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        return Strings.toString(value);
     }
 }
