@@ -1,6 +1,6 @@
 import time
 import threading
-from yfinance import YFinance
+from packages.bot.oracles.yfinance import YFinance
 from assets import Assets
 from web3 import Web3
 from ABIs.ABI import *
