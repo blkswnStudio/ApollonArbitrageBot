@@ -30,17 +30,27 @@ assets.add_asset("MSTR", "0x284352a2E970C7B83Ae069A8de7dd61F4e7f5f7a", "0xd8Bd5F
 assets.add_asset("XAG", "0xc01b65f7B86a3D171b8C7f1CE3B437Bd4Ca68093", "0x95218d7672f80Ac345c06BbE64Bf0657744e74b8")
 assets.add_asset("NVDA", "0x7938486225755BeC1fc202CA80799d27f108B33f", "0xFfa2FCf91033E013BAb79548a5B3F151023adEA3")
 
+web3 = Web3(Web3.HTTPProvider('https://evm-rpc-testnet.sei-apis.com'))
+pricefeed_contract = web3.eth.contract(Web3.to_checksum_address('0x2eA326623a323940BcA88bdA24dDc2e8D657749c'),
+                                  abi=PRICEFEED_ABI)
+print(pricefeed_contract.functions.getPrice('0x03991Ef0b2987487B72829b793e418F8757DE376').call()[0]/1e18)
+
+
 yf = YFinance()
 yf.start()
 
 def update_prices_yf():
     while True:
         for name in data:
-            yf_name = name
-            if name == "XAG":
-                yf_name = "XAGX-USD"
-            yf_price = yf.get_price(yf_name)
-            data[name]["yf_price"] = yf_price["price"]
+            try:
+                yf_name = name
+                if name == "XAG":
+                    yf_name = "XAGX-USD"
+                yf_price = yf.get_price(yf_name)
+                data[name]["yf_price"] = yf_price["price"]
+            except:
+                pass
+        time.sleep(5)
 
 def update_prices_dex():
     while True:
@@ -74,7 +84,7 @@ def send_update():
     message = "Time: " + f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n"
     message += "Asset, Oracle/Dex, Premium\n"
     for name in data:
-        message += f"{name}, {data[name]['dex_price']:.2f} jUSD / {data[name]['yf_price']:.2f} $, {data[name]['premium']:.2f} %\n"#
+        message += f"{name}, {data[name]['dex_price']:.2f} jUSD / YF_Oracle: {data[name]['yf_price']:.2f} $, {data[name]['premium']:.2f} %\n"#
     print(message)
     bot.send_telegram_msg(message)
 
@@ -110,9 +120,10 @@ def run_bot():
                 if abs(premium_value - 100) > 10.0 and premium_value != 0:
                     if time.time() - data[name]["time"] > 60*30:
                         amountin = calc_volume(name)
+                        amountin = amountin * 1.003
                         data[name]["time"] = time.time()
                         message = "Asset, Oracle/Dex, Premium\n"
-                        message += f"{name}, {data[name]['dex_price']:.2f} jUSD / {data[name]['yf_price']:.2f} $, {data[name]['premium']:.2f} %\n"
+                        message += f"{name}, {data[name]['dex_price']:.2f} jUSD / YF_Oracle: {data[name]['yf_price']:.2f} $, {data[name]['premium']:.2f} %\n"
                         if premium_value - 100 < 0.0:
                             message += f"Swappe {amountin:.2f} jUSD gegen {name} damit Ratio bei 90 %\n"
                             bot.send_telegram_msg(message)
