@@ -65,8 +65,9 @@ def check_transaction_revert(tx_hash, rpc_url):
     except Exception as e:
         print(f"Error retrieving transaction: {str(e)}")
 
+
 # Example usage
 if __name__ == "__main__":
-    tx_hash = "0x4a0fb6982b5982c2109ff6e6088d6eabffae5d5dce0f8be7e5741b3fcf2e19f3"  # Replace with actual transaction hash
+    tx_hash = "0x01937b39e94e0d2c7bc00c56ba037012e17663b35ddf7e92d86f78ea1e35468e"  # Replace with actual transaction hash
     rpc_url = "https://evm-rpc-testnet.sei-apis.com"  # Replace with your RPC URL
     check_transaction_revert(tx_hash, rpc_url)

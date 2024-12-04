@@ -27,13 +27,15 @@ class Pyth(Oracles):
         thread = threading.Thread(target=self._update_loop, args=(update_time,))
         thread.start()
 
-    def get_price(self, symbol: str) -> dict:
-        price: float = self.data.get(symbol)
-        if not price:
+    def get_price(self, symbol: str) -> float:
+        price: dict = self.data.get(symbol)
+        if price:
+            return price["price"]
+        else:
             data = self.request_prices([symbol])
             price: float = data["prices"][symbol]
             self.data[symbol] = {"price": price}
-        return {"price": price}
+            return price
 
     def update(self) -> None:
             data = self.request_prices(list(self.data.keys()))

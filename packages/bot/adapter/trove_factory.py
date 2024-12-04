@@ -1,11 +1,12 @@
-import time
 import os
 from web3 import Web3
 
-from .abi import TOKEN_ABI, TROVE_FACTORY_ABI
-from .utils import float_to_int
+from packages.bot.abi import TOKEN_ABI, TROVE_FACTORY_ABI
+from packages.bot.utils import float_to_int
 
-from oracles import Pyth
+from packages.bot.oracles import pyth
+from packages.bot.w3 import w3
+from packages.bot import tokens
 
 
 class TroveFactory:
@@ -17,11 +18,9 @@ class TroveFactory:
     DO_UPDATE_PRICE: list[str] = ["SEI"]
     DONT_UPDATE_PRICE: list[str] = ["jUSD", "JLY"]
 
-    def __init__(self, w3: Web3, trave_factory_address: str):
-        self.w3: Web3 = w3
-        self.pyth = Pyth()
+    def __init__(self, trave_factory_address: str):
         self.trave_factory_address: str = Web3.to_checksum_address(trave_factory_address)
-        self.trave_factory_contract = self.w3.eth.contract(address=self.trave_factory_address, abi=TROVE_FACTORY_ABI)
+        self.trave_factory_contract = w3.eth.contract(address=self.trave_factory_address, abi=TROVE_FACTORY_ABI)
 
         self.dept_symbols: list[str] = [self.get_token_symbol(token_address) for token_address in self.get_dept_token_addresses()]
         self.coll_symbols: list[str] = [self.get_token_symbol(token_address) for token_address in self.get_call_token_addresses()]
@@ -39,10 +38,10 @@ class TroveFactory:
                 dept_token_address: str, dept_amount: float,
                 new_collateral_address: str) -> str:
         
-        collateral_token_contract = self.w3.eth.contract(address=collateral_token_address, abi=TOKEN_ABI)
+        collateral_token_contract = w3.eth.contract(address=collateral_token_address, abi=TOKEN_ABI)
         collateral_token_decimals: int = collateral_token_contract.functions.decimals().call()
 
-        dept_token_contract = self.w3.eth.contract(address=dept_token_address, abi=TOKEN_ABI)
+        dept_token_contract = w3.eth.contract(address=dept_token_address, abi=TOKEN_ABI)
         dept_token_decimals: int = dept_token_contract.functions.decimals().call()
 
         collateral_token_amount: int = float_to_int(collateral_amount, collateral_token_decimals)
@@ -63,15 +62,15 @@ class TroveFactory:
         )
 
         tx = txn.build_transaction({
-            "chainId": self.w3.eth.chain_id,
+            "chainId": w3.eth.chain_id,
             "gas": self.EXECUTE_GAS,
             "value": 100000000000000000,
-            "gasPrice": int(self.w3.eth.gas_price * 1.1),  # 10% extra fee
-            'nonce': self.w3.eth.get_transaction_count(self.ADDRESS),
+            "gasPrice": int(w3.eth.gas_price * 1.1),  # 10% extra fee
+            'nonce': w3.eth.get_transaction_count(self.ADDRESS),
         })
 
-        signed_tx = self.w3.eth.account.sign_transaction(tx, self.PRIVATE_KEY)
-        tx_hash: str = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction).hex()
+        signed_tx = w3.eth.account.sign_transaction(tx, self.PRIVATE_KEY)
+        tx_hash: str = w3.eth.send_raw_transaction(signed_tx.raw_transaction).hex()
         return "0x" + tx_hash if tx_hash[:2] != "0x" else tx_hash
 
     def deposit(self):
@@ -81,7 +80,7 @@ class TroveFactory:
         pass
 
     def approve_token(self, token_address: str, amount: float) -> str:
-        token_contract = self.w3.eth.contract(address=token_address, abi=TOKEN_ABI)
+        token_contract = w3.eth.contract(address=token_address, abi=TOKEN_ABI)
         token_decimals: int = token_contract.functions.decimals().call()
 
         txn = token_contract.functions.approve(
@@ -90,20 +89,20 @@ class TroveFactory:
         )
 
         tx = txn.build_transaction({
-            "chainId": self.w3.eth.chain_id,
+            "chainId": w3.eth.chain_id,
             "gas": self.EXECUTE_GAS,
-            "gasPrice": int(self.w3.eth.gas_price * 1.1),  # 10% extra fee
-            'nonce': self.w3.eth.get_transaction_count(self.ADDRESS),
+            "gasPrice": int(w3.eth.gas_price * 1.1),  # 10% extra fee
+            'nonce': w3.eth.get_transaction_count(self.ADDRESS),
         })
 
-        signed_tx = self.w3.eth.account.sign_transaction(tx, self.PRIVATE_KEY)
-        tx_hash: str = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction).hex()
+        signed_tx = w3.eth.account.sign_transaction(tx, self.PRIVATE_KEY)
+        tx_hash: str = w3.eth.send_raw_transaction(signed_tx.raw_transaction).hex()
         return "0x" + tx_hash if tx_hash[:2] != "0x" else tx_hash
     
     def get_token_symbol(self, token_address: str) -> str:
-        token = self.w3.eth.contract(address=token_address, abi=TOKEN_ABI)
+        token = w3.eth.contract(address=token_address, abi=TOKEN_ABI)
         return token.functions.symbol.call()
     
     def get_update_prices_bytes(self, symbols: list[str]) -> bytes:
-        return self.pyth.request_prices(symbols, True)["binary"]
+        return pyth.request_prices(symbols, True)["binary"]
     
