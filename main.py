@@ -172,7 +172,7 @@ def run_bot():
                 t0 = time.time()
             for name in data_redeem:
                 premium_value = data_redeem[name]["premium"]
-                if(premium_value>1.01) and time.time()-data_redeem[name]["time"]>60*30: # keep in mind that premium is defined in jUSD/USDT
+                if(premium_value>100.5) and time.time()-data_redeem[name]["time"]>60*30: # keep in mind that premium is defined in jUSD/USDT
                     amountin = calc_redeem_volume(name)
                     data_redeem[name]["time"] = time.time()
                     message = "Redeemen ist möglich!\n"
