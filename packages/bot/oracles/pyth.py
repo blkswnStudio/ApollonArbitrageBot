@@ -36,9 +36,9 @@ class Pyth(Oracles):
         return {"price": price}
 
     def update(self) -> None:
-            data = self.request_prices(list(self.data.keys()))
-            for symbol, price in data["prices"].items():
-                self.data[symbol] = {"price": price}
+        data = self.request_prices(list(self.data.keys()))
+        for symbol, price in data["prices"].items():
+            self.data[symbol] = {"price": price}
 
     def _update_loop(self, update_time: float):
         while True:
@@ -49,17 +49,19 @@ class Pyth(Oracles):
         """
         Returns float price of requested symbol.
         """
-        oracle_ids: list[str] = [self.ORACLE_ID_MAPPING[symbol] for symbol in symbols if self.ORACLE_ID_MAPPING.get(symbol)]
+        oracle_ids: list[str] = [self.ORACLE_ID_MAPPING[symbol] for symbol in symbols if
+                                 self.ORACLE_ID_MAPPING.get(symbol)]
         ids: str = '&'.join([f"ids%5B%5D={oracle_id}" for oracle_id in oracle_ids])
         url: str = f'{self.URL_BASE + f"/v2/updates/price/latest?{ids}&encoding=hex&parsed=true&ignore_invalid_price_ids=false"}'
         try:
             # Request data
             data = requests.get(url).json()
 
-            # Sort prices 
-            prices: dict = {self.SYMBOLS_MAPPING[price_data["id"]]: round(int(price_data["price"]["price"]) * 10 ** int(price_data["price"]["expo"]), 4)  
-                                for price_data in data["parsed"]}
-            
+            # Sort prices
+            prices: dict = {self.SYMBOLS_MAPPING[price_data["id"]]: round(
+                int(price_data["price"]["price"]) * 10 ** int(price_data["price"]["expo"]), 4)
+                            for price_data in data["parsed"]}
+
             # Sort Binary
             binary: bytes = bytes.fromhex(data["binary"]["data"][0])
 
